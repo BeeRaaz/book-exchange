@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Book, User
-from ..routers.auth import get_current_user
+from ..dependencies import get_current_user
 from ..schemas import BookCreate, BookOut, BookUpdate
 
 router = APIRouter(prefix="/books", tags=["books"])

@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from ..auth import (
@@ -18,8 +17,9 @@ from ..schemas import (
     UserOut,
 )
 
+from ..dependencies import get_current_user
+
 router = APIRouter(prefix="/auth", tags=["auth"])
-security = HTTPBearer()
 
 
 @router.post(
@@ -74,24 +74,7 @@ def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserOut)
-def get_current_user_profile(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db),
-):
-    token = credentials.credentials
-    try:
-        payload = decode_access_token(token)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token.",
-        ) from exc
-
-    user_id = payload.get("user_id")
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
+def get_current_user_profile(user: User = Depends(get_current_user)):
     return user
 
 
@@ -115,23 +98,3 @@ def refresh_token(payload: RefreshTokenRequest):
         {"sub": decoded["sub"], "user_id": decoded.get("user_id")}
     )
     return TokenResponse(access_token=token)
-
-
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db),
-) -> User:
-    token = credentials.credentials
-    try:
-        payload = decode_access_token(token)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token.",
-        ) from exc
-
-    user_id = payload.get("user_id")
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user

@@ -1,5 +1,7 @@
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Any
+
+from .common import get_utc_now
 
 import bcrypt
 from jose import jwt
@@ -26,7 +28,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict[str, Any], expires_delta: int | None = None) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(
+    expire = get_utc_now() + timedelta(
         minutes=expires_delta or ACCESS_TOKEN_EXPIRE_MINUTES
     )
     to_encode.update({"exp": expire})

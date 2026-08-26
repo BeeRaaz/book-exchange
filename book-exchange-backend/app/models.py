@@ -1,9 +1,17 @@
-from datetime import datetime
-
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Enum as SQLEnum,
+)
 from sqlalchemy.orm import relationship
 
 from .database import Base
+
+from .common import ExchangeStatus, get_utc_now
 
 
 class User(Base):
@@ -14,11 +22,11 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
     updated_at = Column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=get_utc_now,
+        onupdate=get_utc_now,
         nullable=False,
     )
 
@@ -48,11 +56,11 @@ class Book(Base):
     condition = Column(String(50), nullable=True)
     available = Column(Boolean, default=True, nullable=False)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
     updated_at = Column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=get_utc_now,
+        onupdate=get_utc_now,
         nullable=False,
     )
 
@@ -67,12 +75,14 @@ class Exchange(Base):
     receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     requested_book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
     offered_book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
-    status = Column(String(30), default="pending", nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    status = Column(
+        SQLEnum(ExchangeStatus), default=ExchangeStatus.pending, nullable=False
+    )
+    created_at = Column(DateTime, default=get_utc_now, nullable=False)
     updated_at = Column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=get_utc_now,
+        onupdate=get_utc_now,
         nullable=False,
     )
 
