@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Book, Exchange, User
-from ..routers.auth import get_current_user
-from ..schemas import ExchangeCreate, ExchangeOut
+from ..dependencies import get_current_user
+from ..schemas import ExchangeCreate, ExchangeOut, ExchangeStatusUpdate
 
 router = APIRouter(prefix="/exchanges", tags=["exchanges"])
 
@@ -59,7 +59,7 @@ def list_exchanges(
 @router.patch("/{exchange_id}", response_model=ExchangeOut)
 def update_exchange_status(
     exchange_id: int,
-    status_value: str,
+    payload: ExchangeStatusUpdate,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Session = Depends(get_db),
 ):
@@ -69,10 +69,7 @@ def update_exchange_status(
     if exchange.receiver_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    if status_value not in {"accepted", "rejected", "pending"}:
-        raise HTTPException(status_code=400, detail="Invalid status")
-
-    exchange.status = status_value
+    exchange.status = payload.status
     db.commit()
     db.refresh(exchange)
     return exchange

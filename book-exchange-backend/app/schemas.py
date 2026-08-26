@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from .common import ExchangeStatus
+
 
 class RegisterRequest(BaseModel):
     username: str
@@ -67,6 +69,10 @@ class BookOut(BookBase):
 class ExchangeCreate(BaseModel):
     requested_book_id: int
     offered_book_id: int
+
+
+class ExchangeStatusUpdate(BaseModel):
+    status: ExchangeStatus
 
 
 class ExchangeOut(BaseModel):
