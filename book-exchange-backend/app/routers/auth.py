@@ -1,23 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, status
 
-from ..auth import (
-    create_access_token,
-    decode_access_token,
-    hash_password,
-    verify_password,
-)
-from ..database import get_db
-from ..models import User
-from ..schemas import (
+from app.dependencies import get_auth_service, get_current_user
+from app.models import User
+from app.schemas import (
     LoginRequest,
     RefreshTokenRequest,
     RegisterRequest,
     TokenResponse,
     UserOut,
 )
-
-from ..dependencies import get_current_user
+from app.services import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -27,74 +19,32 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     response_model=TokenResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
-    if not payload.email or not payload.password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email and password are required.",
-        )
+def register_user(
+    payload: RegisterRequest, service: AuthService = Depends(get_auth_service)
+):
+    """Register a new user through the auth service and return an access token."""
 
-    if db.query(User).filter(User.email == payload.email).first():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered.",
-        )
-
-    if db.query(User).filter(User.username == payload.username).first():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Username already taken.",
-        )
-
-    user = User(
-        username=payload.username,
-        email=payload.email,
-        password_hash=hash_password(payload.password),
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-
-    token = create_access_token({"sub": user.username, "user_id": user.id})
-    return TokenResponse(access_token=token)
+    return service.register(payload)
 
 
 @router.post("/login", response_model=TokenResponse)
-def login_user(payload: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == payload.email).first()
+def login_user(payload: LoginRequest, service: AuthService = Depends(get_auth_service)):
+    """Authenticate a user through the auth service and return a JWT token."""
 
-    if not user or not verify_password(payload.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials.",
-        )
-
-    token = create_access_token({"sub": user.username, "user_id": user.id})
-    return TokenResponse(access_token=token)
+    return service.login(payload)
 
 
 @router.get("/me", response_model=UserOut)
 def get_current_user_profile(user: User = Depends(get_current_user)):
+    """Return the authenticated user’s profile information."""
+
     return user
 
 
 @router.post("/refresh", response_model=TokenResponse)
-def refresh_token(payload: RefreshTokenRequest):
-    try:
-        decoded = decode_access_token(payload.token)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token.",
-        ) from exc
+def refresh_token(
+    payload: RefreshTokenRequest, service: AuthService = Depends(get_auth_service)
+):
+    """Validate an existing token and issue a replacement access token."""
 
-    if not decoded.get("sub"):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload.",
-        )
-
-    token = create_access_token(
-        {"sub": decoded["sub"], "user_id": decoded.get("user_id")}
-    )
-    return TokenResponse(access_token=token)
+    return service.refresh(payload)

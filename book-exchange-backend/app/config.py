@@ -7,6 +7,8 @@ load_dotenv()
 
 
 def _read_env(name: str, default: str | None = None) -> str | None:
+    """Read a value from the environment and strip accidental whitespace."""
+
     value = os.getenv(name, default)
     if value is None:
         return None
@@ -14,6 +16,8 @@ def _read_env(name: str, default: str | None = None) -> str | None:
 
 
 def normalize_database_url(value: str | None) -> str | None:
+    """Normalize database URLs that may contain quoting or a leading psql prefix."""
+
     if not value:
         return value
 
