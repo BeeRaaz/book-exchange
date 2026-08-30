@@ -28,9 +28,13 @@ app.include_router(exchanges.router)
 
 @app.get("/health")
 def health_check():
+    """Return a basic readiness response for service checks."""
+
     return {"status": "ok"}
 
 
 @app.get("/")
 def root():
+    """Return a lightweight welcome payload for the API root endpoint."""
+
     return {"message": "Book Exchange API is running"}

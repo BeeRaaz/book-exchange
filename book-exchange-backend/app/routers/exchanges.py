@@ -1,12 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, status
 
-from ..database import get_db
-from ..models import Book, Exchange, User
-from ..dependencies import get_current_user
-from ..schemas import ExchangeCreate, ExchangeOut, ExchangeStatusUpdate
+from app.dependencies import get_current_user, get_exchange_service
+from app.models import User
+from app.schemas import ExchangeCreate, ExchangeOut, ExchangeStatusUpdate
+from app.services import ExchangeService
 
 router = APIRouter(prefix="/exchanges", tags=["exchanges"])
 
@@ -15,45 +14,21 @@ router = APIRouter(prefix="/exchanges", tags=["exchanges"])
 def create_exchange(
     payload: ExchangeCreate,
     current_user: Annotated[User, Depends(get_current_user)],
-    db: Session = Depends(get_db),
+    service: ExchangeService = Depends(get_exchange_service),
 ):
-    requested_book = db.query(Book).filter(Book.id == payload.requested_book_id).first()
-    offered_book = db.query(Book).filter(Book.id == payload.offered_book_id).first()
+    """Create a book exchange after validating ownership and availability rules."""
 
-    if not requested_book or not offered_book:
-        raise HTTPException(status_code=404, detail="One or more books not found")
-    if requested_book.owner_id == current_user.id:
-        raise HTTPException(status_code=400, detail="You cannot request your own book")
-    if offered_book.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You can only offer your own books")
-
-    exchange = Exchange(
-        requester_id=current_user.id,
-        receiver_id=requested_book.owner_id,
-        requested_book_id=requested_book.id,
-        offered_book_id=offered_book.id,
-    )
-    db.add(exchange)
-    db.commit()
-    db.refresh(exchange)
-    return exchange
+    return service.create_exchange(current_user, payload)
 
 
 @router.get("", response_model=list[ExchangeOut])
 def list_exchanges(
     current_user: Annotated[User, Depends(get_current_user)],
-    db: Session = Depends(get_db),
+    service: ExchangeService = Depends(get_exchange_service),
 ):
-    exchanges = (
-        db.query(Exchange)
-        .filter(
-            (Exchange.requester_id == current_user.id)
-            | (Exchange.receiver_id == current_user.id)
-        )
-        .order_by(Exchange.created_at.desc())
-        .all()
-    )
-    return exchanges
+    """Return all exchanges where the current user is involved."""
+
+    return service.get_all_exchanges(current_user)
 
 
 @router.patch("/{exchange_id}", response_model=ExchangeOut)
@@ -61,15 +36,8 @@ def update_exchange_status(
     exchange_id: int,
     payload: ExchangeStatusUpdate,
     current_user: Annotated[User, Depends(get_current_user)],
-    db: Session = Depends(get_db),
+    service: ExchangeService = Depends(get_exchange_service),
 ):
-    exchange = db.query(Exchange).filter(Exchange.id == exchange_id).first()
-    if not exchange:
-        raise HTTPException(status_code=404, detail="Exchange not found")
-    if exchange.receiver_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    """Update an exchange status in a single service-managed workflow."""
 
-    exchange.status = payload.status
-    db.commit()
-    db.refresh(exchange)
-    return exchange
+    return service.update_exchange(exchange_id, payload, current_user)
