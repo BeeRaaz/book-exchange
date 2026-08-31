@@ -49,7 +49,7 @@ class UserService:
         return user
 
     def create_user(self, payload: RegisterRequest) -> User:
-        """Create a user after validating that the email and username are unique."""
+        """Create a user after hashing the password and confirming uniqueness."""
 
         if self.repo.get_by_email(payload.email):
             raise HTTPException(status_code=409, detail="Email already registered.")

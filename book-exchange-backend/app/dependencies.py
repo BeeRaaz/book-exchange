@@ -8,7 +8,6 @@ from .database import get_db
 from .models import User
 from .auth import decode_access_token
 from .repositories import (
-    AuthRepository,
     BookRepository,
     ExchangeRepository,
     UserRepository,
@@ -61,16 +60,13 @@ def get_exchange_service(
     return ExchangeService(repo)
 
 
-def get_auth_repo(db: Session = Depends(get_db)) -> AuthRepository:
-    """Create an auth repository bound to the current request session."""
+def get_auth_service(
+    users: UserService = Depends(get_user_service),
+    repo: UserRepository = Depends(get_user_repo),
+) -> AuthService:
+    """Resolve auth with user creation rules and shared user persistence."""
 
-    return AuthRepository(db)
-
-
-def get_auth_service(repo: AuthRepository = Depends(get_auth_repo)) -> AuthService:
-    """Resolve the auth service with its repository dependency."""
-
-    return AuthService(repo)
+    return AuthService(users, repo)
 
 
 def get_current_user(

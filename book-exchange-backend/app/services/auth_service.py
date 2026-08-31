@@ -3,22 +3,23 @@ from fastapi import HTTPException
 from app.auth import (
     create_access_token,
     decode_access_token,
-    hash_password,
     verify_password,
 )
-from app.repositories import AuthRepository
+from app.repositories import UserRepository
 from app.schemas import (
     LoginRequest,
     RefreshTokenRequest,
     RegisterRequest,
     TokenResponse,
 )
+from app.services.user_service import UserService
 
 
 class AuthService:
-    """Apply authentication rules while delegating persistence to an auth repository."""
+    """Issue tokens and verify credentials; persist users through UserService."""
 
-    def __init__(self, repo: AuthRepository):
+    def __init__(self, users: UserService, repo: UserRepository):
+        self.users = users
         self.repo = repo
 
     def register(self, payload: RegisterRequest) -> TokenResponse:
@@ -29,17 +30,7 @@ class AuthService:
                 status_code=400, detail="Email and password are required."
             )
 
-        if self.repo.get_by_email(payload.email):
-            raise HTTPException(status_code=409, detail="Email already registered.")
-
-        if self.repo.get_by_username(payload.username):
-            raise HTTPException(status_code=409, detail="Username already taken.")
-
-        user = self.repo.create(
-            payload.username,
-            payload.email,
-            hash_password(payload.password),
-        )
+        user = self.users.create_user(payload)
         self.repo.commit()
 
         return TokenResponse(
