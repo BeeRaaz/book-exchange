@@ -1,11 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, Query, status
 
-from app.database import get_db
 from app.dependencies import get_current_user, get_book_service
-from app.models import Book, User
+from app.models import User
 from app.schemas import BookCreate, BookOut, BookUpdate
 from app.services import BookService
 

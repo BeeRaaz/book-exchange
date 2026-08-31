@@ -32,7 +32,8 @@ class BookService:
 
     def create_book(self, current_user: User, payload: BookCreate) -> Book:
         """Create a book owned by the authenticated user."""
-        return self.repo.create(
+
+        book = self.repo.create(
             payload.title,
             payload.author,
             payload.description,
@@ -41,6 +42,8 @@ class BookService:
             payload.available,
             current_user.id,
         )
+        self.repo.commit()
+        return book
 
     def update_book(
         self, book_id: int, payload: BookUpdate, current_user: User
@@ -53,8 +56,9 @@ class BookService:
             raise HTTPException(status_code=403, detail="Not authorized")
 
         updates = payload.model_dump(exclude_unset=True)
-
-        return self.repo.update(book_id, updates)
+        updated = self.repo.update(book_id, updates)
+        self.repo.commit()
+        return updated
 
     def delete_book(self, book_id: int, current_user: User) -> None:
         """Delete a book only when it belongs to the authenticated user."""
@@ -65,3 +69,4 @@ class BookService:
             raise HTTPException(status_code=403, detail="Not authorized")
 
         self.repo.delete(book_id)
+        self.repo.commit()

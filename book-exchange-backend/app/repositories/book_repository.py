@@ -53,6 +53,7 @@ class BookRepository:
 
         self.db.add(book)
         self.db.flush()
+        self.db.refresh(book)
         return book
 
     def update(self, book_id: int, updates: dict) -> Book | None:
@@ -75,3 +76,8 @@ class BookRepository:
         self.db.delete(book)
         self.db.flush()
         return True
+
+    def commit(self) -> None:
+        """Persist the current unit of work after a book mutation."""
+
+        self.db.commit()
