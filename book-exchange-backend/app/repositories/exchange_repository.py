@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.common import ExchangeStatus
-from app.models import Book, Exchange, User
+from app.models import Exchange, User
 
 
 class ExchangeRepository:
@@ -14,11 +14,6 @@ class ExchangeRepository:
         """Return an exchange by id, or None when the record is absent."""
 
         return self.db.query(Exchange).filter(Exchange.id == exchange_id).first()
-
-    def get_book_by_id(self, book_id: int) -> Book | None:
-        """Fetch a book instance used by the exchange service for validation."""
-
-        return self.db.query(Book).filter(Book.id == book_id).first()
 
     def get_all(self, current_user: User) -> list[Exchange]:
         """Return all exchanges involving the supplied user, ordered newest first."""
@@ -52,41 +47,51 @@ class ExchangeRepository:
             .first()
         )
 
+    def get_pending_involving_books(
+        self, book_ids: list[int], except_exchange_id: int
+    ) -> list[Exchange]:
+        """Return pending exchanges that include any of the given books."""
+
+        return (
+            self.db.query(Exchange)
+            .filter(
+                Exchange.id != except_exchange_id,
+                Exchange.status == ExchangeStatus.pending,
+                (Exchange.requested_book_id.in_(book_ids))
+                | (Exchange.offered_book_id.in_(book_ids)),
+            )
+            .all()
+        )
+
     def create(
-        self, current_user: User, requested_book_id: int, offered_book_id: int
+        self,
+        requester_id: int,
+        receiver_id: int,
+        requested_book_id: int,
+        offered_book_id: int,
     ) -> Exchange:
         """Create an exchange record linking the requester, receiver, and books."""
 
-        requested_book = self.get_book_by_id(requested_book_id)
-        offered_book = self.get_book_by_id(offered_book_id)
-
         exchange = Exchange(
-            requester_id=current_user.id,
-            receiver_id=requested_book.owner_id,
-            requested_book_id=requested_book.id,
-            offered_book_id=offered_book.id,
+            requester_id=requester_id,
+            receiver_id=receiver_id,
+            requested_book_id=requested_book_id,
+            offered_book_id=offered_book_id,
         )
 
         self.db.add(exchange)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(exchange)
         return exchange
 
-    def update(self, exchange_id: int, status: ExchangeStatus) -> Exchange:
-        """Update the exchange status and persist the transaction."""
-
-        exchange = self.db.query(Exchange).filter(Exchange.id == exchange_id).first()
+    def update_status(self, exchange: Exchange, status: ExchangeStatus) -> Exchange:
+        """Apply a new status to an exchange without committing."""
 
         exchange.status = status
+        self.db.flush()
+        return exchange
 
-        if status == ExchangeStatus.accepted:
-            requested_book = self.get_book_by_id(exchange.requested_book_id)
-            offered_book = self.get_book_by_id(exchange.offered_book_id)
-            if requested_book:
-                requested_book.available = False
-            if offered_book:
-                offered_book.available = False
+    def commit(self) -> None:
+        """Persist the current unit of work after an exchange mutation."""
 
         self.db.commit()
-        self.db.refresh(exchange)
-        return exchange

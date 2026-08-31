@@ -54,10 +54,11 @@ def get_exchange_repo(db: Session = Depends(get_db)) -> ExchangeRepository:
 
 def get_exchange_service(
     repo: ExchangeRepository = Depends(get_exchange_repo),
+    books: BookRepository = Depends(get_book_repo),
 ) -> ExchangeService:
-    """Resolve the exchange service with its repository dependency."""
+    """Resolve the exchange service with exchange and book persistence."""
 
-    return ExchangeService(repo)
+    return ExchangeService(repo, books)
 
 
 def get_auth_service(
