@@ -3,6 +3,7 @@ import os
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+os.environ.setdefault("REFRESH_TOKEN_EXPIRE_DAYS", "7")
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,6 +13,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
 from app.main import app
+from app.rate_limiter import limiter
 
 TEST_ENGINE = create_engine(
     "sqlite://",
@@ -38,9 +40,15 @@ def client(db_session: Session):
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
+
+    # Disable rate limiting for tests
+    limiter.enabled = False
+
     with TestClient(app) as test_client:
         yield test_client
+
     app.dependency_overrides.clear()
+    limiter.enabled = True
 
 
 def register_user(client: TestClient, username: str, email: str):

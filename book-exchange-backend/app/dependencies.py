@@ -6,11 +6,12 @@ from sqlalchemy.orm import Session
 
 from .database import get_db
 from .models import User
-from .auth import decode_access_token
+from .auth import decode_token
 from .repositories import (
     BookRepository,
     ExchangeRepository,
     UserRepository,
+    RevokedTokenRepository,
 )
 from .services import (
     AuthService,
@@ -61,13 +62,20 @@ def get_exchange_service(
     return ExchangeService(repo, books)
 
 
+def get_revoked_token_repo(db: Session = Depends(get_db)) -> RevokedTokenRepository:
+    """Create a revoked token repository bound to the current request database session."""
+
+    return RevokedTokenRepository(db)
+
+
 def get_auth_service(
     users: UserService = Depends(get_user_service),
     repo: UserRepository = Depends(get_user_repo),
+    revoked_tokens: RevokedTokenRepository = Depends(get_revoked_token_repo),
 ) -> AuthService:
-    """Resolve auth with user creation rules and shared user persistence."""
+    """Resolve auth with user creation rules and token revocation."""
 
-    return AuthService(users, repo)
+    return AuthService(users, repo, revoked_tokens)
 
 
 def get_current_user(
@@ -81,7 +89,7 @@ def get_current_user(
 
     token = credentials.credentials
     try:
-        payload = decode_access_token(token)
+        payload = decode_token(token, expected_type="access")
     except Exception as exc:
         raise HTTPException(
             status_code=401,
@@ -92,5 +100,8 @@ def get_current_user(
     user = user_repo.get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized User")
+
+    if not user.is_active:
+        raise HTTPException(status_code=401, detail="User account is inactive.")
 
     return user
