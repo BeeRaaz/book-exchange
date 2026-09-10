@@ -49,9 +49,16 @@ def get_secret_key() -> str:
 
 
 def get_access_token_expire_minutes() -> int:
-    value = _read_env("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+    value = _read_env("ACCESS_TOKEN_EXPIRE_MINUTES", "15")
     if not value:
-        return 30
+        return 15
+    return int(value)
+
+
+def get_refresh_token_expire_days() -> int:
+    value = _read_env("REFRESH_TOKEN_EXPIRE_DAYS", "7")
+    if not value:
+        return 7
     return int(value)
 
 

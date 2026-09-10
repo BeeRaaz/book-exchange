@@ -52,13 +52,24 @@ class UserService:
         """Create a user after hashing the password and confirming uniqueness."""
 
         if self.repo.get_by_email(payload.email):
-            raise HTTPException(status_code=409, detail="Email already registered.")
+            raise HTTPException(
+                status_code=409,
+                detail="This email or username is already registered.",
+            )
 
         if self.repo.get_by_username(payload.username):
-            raise HTTPException(status_code=409, detail="Username already taken.")
+            raise HTTPException(
+                status_code=409,
+                detail="This email or username is already registered.",
+            )
+
+        try:
+            password_hash = hash_password(payload.password)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
         return self.repo.create(
             username=payload.username,
             email=payload.email,
-            password_hash=hash_password(payload.password),
+            password_hash=password_hash,
         )
