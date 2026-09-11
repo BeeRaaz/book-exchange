@@ -25,11 +25,13 @@ def create_book(
 def list_books(
     available: bool | None = None,
     search: str | None = Query(default=None),
+    limit: int = Query(default=10, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     service: BookService = Depends(get_book_service),
 ):
     """List books using the service-layer filters and ordering rules."""
 
-    return service.get_all_books(available, search)
+    return service.get_all_books(available, search, limit, offset)
 
 
 @router.get("/{book_id}", response_model=BookOut)

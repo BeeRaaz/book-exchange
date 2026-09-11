@@ -15,7 +15,11 @@ class BookRepository:
         return self.db.query(Book).filter(Book.id == book_id).first()
 
     def get_all(
-        self, available: bool | None = None, search: str | None = None
+        self,
+        available: bool | None = None,
+        search: str | None = None,
+        limit: int = 10,
+        offset: int = 0,
     ) -> list[Book]:
         """Return books ordered newest first with optional filters."""
 
@@ -27,7 +31,7 @@ class BookRepository:
             query = query.filter(
                 (Book.title.ilike(search_term)) | (Book.author.ilike(search_term))
             )
-        return query.order_by(Book.created_at.desc()).all()
+        return query.order_by(Book.created_at.desc()).limit(limit).offset(offset).all()
 
     def create(
         self,

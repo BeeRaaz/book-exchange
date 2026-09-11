@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 
 from app.dependencies import get_current_user, get_exchange_service
 from app.models import User
@@ -24,11 +24,13 @@ def create_exchange(
 @router.get("", response_model=list[ExchangeOut])
 def list_exchanges(
     current_user: Annotated[User, Depends(get_current_user)],
+    limit: int = Query(default=10, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     service: ExchangeService = Depends(get_exchange_service),
 ):
     """Return all exchanges where the current user is involved."""
 
-    return service.get_all_exchanges(current_user)
+    return service.get_all_exchanges(current_user, limit, offset)
 
 
 @router.patch("/{exchange_id}", response_model=ExchangeOut)
