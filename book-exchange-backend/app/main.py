@@ -4,11 +4,8 @@ from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
 
 from .config import get_allowed_origins
-from .database import Base, engine
 from .rate_limiter import limiter
 from .routers import auth, books, exchanges
-
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Book Exchange API",
