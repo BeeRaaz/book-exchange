@@ -16,9 +16,9 @@ class Book(Base):
     description = Column(String(1000), nullable=True)
     genre = Column(String(100), nullable=True)
     condition = Column(String(50), nullable=True)
-    available = Column(Boolean, default=True, nullable=False)
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    available = Column(Boolean, default=True, nullable=False, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False, index=True)
     updated_at = Column(
         DateTime,
         default=get_utc_now,

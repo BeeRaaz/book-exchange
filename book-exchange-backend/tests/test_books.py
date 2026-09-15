@@ -47,6 +47,11 @@ def test_list_books_filters_by_availability_and_search(client, registered_user):
     create_book(client, token, title="Available Novel", available=True)
     create_book(client, token, title="Unavailable Novel", available=False)
 
+    # Test listing without search parameters
+    response_all = client.get("/books")
+    assert response_all.status_code == 200
+    assert len(response_all.json()) == 2
+
     response = client.get("/books", params={"available": True, "search": "available"})
 
     assert response.status_code == 200
