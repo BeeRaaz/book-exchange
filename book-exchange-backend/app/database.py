@@ -9,8 +9,26 @@ connect_args = {}
 if DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
 
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine_kwargs = {
+    "connect_args": connect_args,
+    "pool_pre_ping": True,
+}
+
+# Connection-pool settings don't apply to SQLite's default pool, so we only set them for other databases.
+if not DATABASE_URL.startswith("sqlite"):
+    engine_kwargs.update(
+        {
+            "pool_size": 5,
+            "max_overflow": 5,
+        }
+    )
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
 
 Base = declarative_base()
 

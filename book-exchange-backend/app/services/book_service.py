@@ -25,10 +25,12 @@ class BookService:
         self,
         available: bool | None = None,
         search: str | None = None,
+        limit: int = 10,
+        offset: int = 0,
     ) -> list[Book]:
         """Return books matching the optional public filters."""
 
-        return self.repo.get_all(available, search)
+        return self.repo.get_all(available, search, limit, offset)
 
     def create_book(self, current_user: User, payload: BookCreate) -> Book:
         """Create a book owned by the authenticated user."""

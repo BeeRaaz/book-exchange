@@ -15,7 +15,12 @@ class ExchangeRepository:
 
         return self.db.query(Exchange).filter(Exchange.id == exchange_id).first()
 
-    def get_all(self, current_user: User) -> list[Exchange]:
+    def get_all(
+        self,
+        current_user: User,
+        limit: int = 10,
+        offset: int = 0,
+    ) -> list[Exchange]:
         """Return all exchanges involving the supplied user, ordered newest first."""
 
         return (
@@ -25,6 +30,8 @@ class ExchangeRepository:
                 | (Exchange.receiver_id == current_user.id)
             )
             .order_by(Exchange.created_at.desc())
+            .limit(limit)
+            .offset(offset)
             .all()
         )
 

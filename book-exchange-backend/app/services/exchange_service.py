@@ -23,10 +23,15 @@ class ExchangeService:
 
         return exchange
 
-    def get_all_exchanges(self, current_user: User) -> list[Exchange]:
+    def get_all_exchanges(
+        self,
+        current_user: User,
+        limit: int = 10,
+        offset: int = 0,
+    ) -> list[Exchange]:
         """Return every exchange involving the current user."""
 
-        return self.repo.get_all(current_user)
+        return self.repo.get_all(current_user, limit, offset)
 
     def _validate_book_pair(
         self, current_user: User, payload: ExchangeCreate

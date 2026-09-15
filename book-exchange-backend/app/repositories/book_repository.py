@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import Book
@@ -15,7 +16,11 @@ class BookRepository:
         return self.db.query(Book).filter(Book.id == book_id).first()
 
     def get_all(
-        self, available: bool | None = None, search: str | None = None
+        self,
+        available: bool | None = None,
+        search: str | None = None,
+        limit: int = 10,
+        offset: int = 0,
     ) -> list[Book]:
         """Return books ordered newest first with optional filters."""
 
@@ -23,11 +28,26 @@ class BookRepository:
         if available is not None:
             query = query.filter(Book.available == available)
         if search:
-            search_term = f"%{search.lower()}%"
-            query = query.filter(
-                (Book.title.ilike(search_term)) | (Book.author.ilike(search_term))
-            )
-        return query.order_by(Book.created_at.desc()).all()
+            if self.db.bind and self.db.bind.dialect.name == "postgresql":
+                # Production Postgres Full-Text Search using the GIN index
+
+                fts_vector = func.to_tsvector(
+                    "english",
+                    func.coalesce(Book.title, "")
+                    + " "
+                    + func.coalesce(Book.author, ""),
+                )
+                query = query.filter(
+                    fts_vector.op("@@")(func.plainto_tsquery("english", search))
+                )
+            else:
+                # SQLite fallback for test suite
+                search_term = f"%{search.lower()}%"
+                query = query.filter(
+                    (Book.title.ilike(search_term)) | (Book.author.ilike(search_term))
+                )
+
+        return query.order_by(Book.created_at.desc()).limit(limit).offset(offset).all()
 
     def create(
         self,

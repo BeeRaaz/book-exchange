@@ -14,4 +14,4 @@ class RevokedToken(Base):
     jti = Column(String, unique=True, nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     revoked_at = Column(DateTime, default=get_utc_now, nullable=False, index=True)
-    expires_at = Column(DateTime, nullable=False)
+    expires_at = Column(DateTime, nullable=False, index=True)

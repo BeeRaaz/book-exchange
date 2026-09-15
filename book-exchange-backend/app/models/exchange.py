@@ -13,14 +13,14 @@ class Exchange(Base):
     __tablename__ = "exchanges"
 
     id = Column(Integer, primary_key=True, index=True)
-    requester_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    requested_book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
-    offered_book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
+    requester_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    requested_book_id = Column(Integer, ForeignKey("books.id"), nullable=False, index=True)
+    offered_book_id = Column(Integer, ForeignKey("books.id"), nullable=False, index=True)
     status = Column(
-        SQLEnum(ExchangeStatus), default=ExchangeStatus.pending, nullable=False
+        SQLEnum(ExchangeStatus), default=ExchangeStatus.pending, nullable=False, index=True
     )
-    created_at = Column(DateTime, default=get_utc_now, nullable=False)
+    created_at = Column(DateTime, default=get_utc_now, nullable=False, index=True)
     updated_at = Column(
         DateTime,
         default=get_utc_now,
